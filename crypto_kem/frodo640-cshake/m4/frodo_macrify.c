@@ -6,54 +6,28 @@
 
 #include "fips202.h"
 
-int frodo_mul_add_as_plus_e(uint16_t *out, const uint16_t *s, const uint16_t *e, const uint8_t *seed_A)
+int frodo_mul_add_as_plus_e(uint16_t *out, const uint16_t *s, const uint8_t *seed_A)
 { // Generate-and-multiply: generate matrix A (N x N) row-wise, multiply by s on the right.
-  // Inputs: s, e (N x N_BAR)
+  // Inputs: s, out=e (N x N_BAR)
   // Output: out = A*s + e (N x N_BAR)
-    int i, j, k;
-    int16_t a_row[4*PARAMS_N] = {0};
+    uint16_t a_row[PARAMS_N] = {0};
+    int r_A;
 
-    for (i = 0; i < (PARAMS_N*PARAMS_NBAR); i += 2) {
-        *((uint32_t*)&out[i]) = *((uint32_t*)&e[i]);
-    }
-
-    for (i = 0; i < PARAMS_N; i += 4) {
-        cshake128_simple((unsigned char*)(a_row + 0*PARAMS_N), (unsigned long long)(2*PARAMS_N), (uint16_t)(256+i+0), seed_A, (unsigned long long)BYTES_SEED_A);
-        cshake128_simple((unsigned char*)(a_row + 1*PARAMS_N), (unsigned long long)(2*PARAMS_N), (uint16_t)(256+i+1), seed_A, (unsigned long long)BYTES_SEED_A);
-        cshake128_simple((unsigned char*)(a_row + 2*PARAMS_N), (unsigned long long)(2*PARAMS_N), (uint16_t)(256+i+2), seed_A, (unsigned long long)BYTES_SEED_A);
-        cshake128_simple((unsigned char*)(a_row + 3*PARAMS_N), (unsigned long long)(2*PARAMS_N), (uint16_t)(256+i+3), seed_A, (unsigned long long)BYTES_SEED_A);
-
-        for (k = 0; k < PARAMS_NBAR; k++) {
-            uint16_t sum[4] = {0};
-            for (j = 0; j < PARAMS_N; j++) {                    // Matrix-vector multiplication
-                uint16_t sp = s[k*PARAMS_N + j];
-                sum[0] += a_row[0*PARAMS_N + j] * sp;           // Go through four lines with same s
-                sum[1] += a_row[1*PARAMS_N + j] * sp;
-                sum[2] += a_row[2*PARAMS_N + j] * sp;
-                sum[3] += a_row[3*PARAMS_N + j] * sp;
-            }
-            out[(i+0)*PARAMS_NBAR + k] += sum[0];
-            out[(i+2)*PARAMS_NBAR + k] += sum[2];
-            out[(i+1)*PARAMS_NBAR + k] += sum[1];
-            out[(i+3)*PARAMS_NBAR + k] += sum[3];
-        }
+    for (r_A = 0; r_A < PARAMS_N; r_A++)
+    {
+        cshake128_simple((unsigned char*)(a_row), (unsigned long long)(2*PARAMS_N), (uint16_t)(256+r_A), seed_A, (unsigned long long)BYTES_SEED_A);
+        mul_row(a_row, s, out+r_A*PARAMS_NBAR, (uint32_t) PARAMS_N);
     }
 
     return 1;
 }
 
 
-int frodo_mul_add_sa_plus_e(uint16_t *out, const uint16_t *s, const uint16_t *e, const uint8_t *seed_A)
+int frodo_mul_add_sa_plus_e(uint16_t *out, const uint16_t *s, const uint8_t *seed_A)
 { // Generate-and-multiply: generate matrix A (N x N) column-wise, multiply by s' on the left.
-  // Inputs: s', e' (N_BAR x N)
+  // Inputs: s', out=e' (N_BAR x N)
   // Output: out = s'*A + e' (N_BAR x N)
     int i, j, k, kk;
-
-    for (i = 0; i < (PARAMS_N*PARAMS_NBAR); i += 2) {
-        *((uint32_t*)&out[i]) = *((uint32_t*)&e[i]);
-    }
-
-    int t=0;
     uint16_t a_cols[4*PARAMS_N] = {0};
 
     for (kk = 0; kk < PARAMS_N; kk+=4) {
@@ -67,7 +41,7 @@ int frodo_mul_add_sa_plus_e(uint16_t *out, const uint16_t *s, const uint16_t *e,
             for (j = 0; j < 4; j++) {
                 uint16_t sp = s[i*PARAMS_N + kk + j];
                 for (k = 0; k < PARAMS_N; k++) {                // Matrix-vector multiplication
-                    sum[k] += sp * a_cols[(t+j)*PARAMS_N + k];
+                    sum[k] += sp * a_cols[j*PARAMS_N + k];
                 }
              }
             for(k = 0; k < PARAMS_N; k++){
@@ -90,7 +64,7 @@ void frodo_mul_bs(uint16_t *out, const uint16_t *b, const uint16_t *s)
         for (j = 0; j < PARAMS_NBAR; j++) {
             out[i*PARAMS_NBAR + j] = 0;
             for (k = 0; k < PARAMS_N; k++) {
-                out[i*PARAMS_NBAR + j] += b[i*PARAMS_N + k] * s[j*PARAMS_N + k];
+                out[i*PARAMS_NBAR + j] += b[i*PARAMS_N + k] * s[k*PARAMS_NBAR + j];
             }
             out[i*PARAMS_NBAR + j] = (uint32_t)(out[i*PARAMS_NBAR + j]) & ((1<<PARAMS_LOGQ)-1);
         }
@@ -173,7 +147,7 @@ void frodo_key_decode(uint16_t *out, const uint16_t *in)
             templong |= ((uint64_t)(temp & maskex)) << (PARAMS_EXTRACTED_BITS * j);
             index++;
         }
-	for(j = 0; j < PARAMS_EXTRACTED_BITS; j++)
-	    pos[i*PARAMS_EXTRACTED_BITS + j] = (templong >> (8*j)) & 0xFF;
+    for(j = 0; j < PARAMS_EXTRACTED_BITS; j++)
+        pos[i*PARAMS_EXTRACTED_BITS + j] = (templong >> (8*j)) & 0xFF;
     }
 }

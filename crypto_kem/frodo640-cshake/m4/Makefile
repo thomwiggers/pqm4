@@ -4,7 +4,7 @@ AR     = arm-none-eabi-gcc-ar
 
 HEADERS = api.h frodo_macrify.h 
 SOURCES = frodo640.c util.c 
-OBJECTS = frodo640.o util.o util_asm.o
+OBJECTS = frodo640.o util.o util_asm.o mul_asm.o
 
 libpqm4.a: $(OBJECTS)
 	$(AR) rcs $@ $(OBJECTS)
