@@ -23,7 +23,7 @@ unsigned char pk[CRYPTO_PUBLICKEYBYTES];
 unsigned char sk[CRYPTO_SECRETKEYBYTES];
 unsigned char sm[MLEN + CRYPTO_BYTES];
 unsigned char m[MLEN];
-unsigned char m_out[MLEN + CRYPTO_BYTES];
+//unsigned char m_out[MLEN + CRYPTO_BYTES];
 
 unsigned long long mlen;
 unsigned long long smlen;
@@ -48,22 +48,22 @@ static int test_sign(void) {
   FILL_STACK()
   crypto_sign_keypair(pk, sk);
   CHECK_STACK()
-  if(c >= canary_size) return -1; 
+  if(c >= canary_size) return -1;
   stack_key_gen = c;
-  
+
   // Bob derives a secret key and creates a response
   randombytes(m, MLEN);
   FILL_STACK()
   crypto_sign(sm, &smlen, m, MLEN, sk);
   CHECK_STACK()
-  if(c >= canary_size) return -1; 
+  if(c >= canary_size) return -1;
   stack_sign = c;
-    
+
   // Alice uses Bobs response to get her secret key
   FILL_STACK()
-  rc = crypto_sign_open(m_out, &mlen, sm, smlen, pk);
+  rc = crypto_sign_open(sm, &mlen, sm, smlen, pk);
   CHECK_STACK()
-  if(c >= canary_size) return -1; 
+  if(c >= canary_size) return -1;
   stack_verify = c;
 
   if (rc) {
@@ -91,7 +91,7 @@ int main(void) {
     if(canary_size == 0) {
       send_USART_str("failed to measure stack usage.\n");
       break;
-    } 
+    }
   }
 
   // marker for automated benchmarks
