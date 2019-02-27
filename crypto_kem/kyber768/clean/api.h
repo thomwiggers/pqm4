@@ -1,0 +1,5 @@
+#include "api.h.pqclean"
+
+#define crypto_kem_keypair PQCLEAN_KYBER768_CLEAN_crypto_kem_keypair
+#define crypto_kem_enc PQCLEAN_KYBER768_CLEAN_crypto_kem_enc
+#define crypto_kem_dec PQCLEAN_KYBER768_CLEAN_crypto_kem_dec
